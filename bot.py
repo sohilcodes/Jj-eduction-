@@ -1,12 +1,22 @@
+from flask import Flask
+import threading
+import os
 import telebot
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 
 # 🔑 SETTINGS
-import os
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = 6411315434  # Apna Telegram ID
 
 bot = telebot.TeleBot(BOT_TOKEN)
+
+# 🌐 Dummy Web Server for Render + UptimeRobot
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Bot is running successfully!"
+
 users = set()
 
 # 🎛 Main Menu (2 Buttons per Row)
@@ -176,7 +186,6 @@ We do not provide personal trading advice.
 For educational purposes only - no guaranteed results.☝🏻
 @jjtrader_00"""
 
-    # 🔗 Inline Button: Learn More -> Channel
     inline_markup = InlineKeyboardMarkup()
     learn_btn = InlineKeyboardButton(
         text="📚 LEARN MORE",
@@ -184,14 +193,12 @@ For educational purposes only - no guaranteed results.☝🏻
     )
     inline_markup.add(learn_btn)
 
-    # Send support message with inline button (under the message)
     bot.send_message(
         message.chat.id,
         text,
         reply_markup=inline_markup
     )
 
-    # Show main menu again
     bot.send_message(
         message.chat.id,
         "📚 Back to Main Menu:",
@@ -199,4 +206,14 @@ For educational purposes only - no guaranteed results.☝🏻
     )
 
 print("Bot Running with Auto Pin Disclaimer + Admin Notify + Inline Channel Button + Menu System")
-bot.infinity_polling()
+
+def run_bot():
+    print("Bot Running with Auto Pin Disclaimer + Admin Notify + Inline Channel Button + Menu System")
+    bot.infinity_polling()
+
+# Run bot in separate thread (for Web Service)
+threading.Thread(target=run_bot).start()
+
+# Bind port for Render Web Service (IMPORTANT)
+port = int(os.environ.get("PORT", 10000))
+app.run(host="0.0.0.0", port=port)
