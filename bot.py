@@ -1,10 +1,10 @@
 import telebot
-from telebot.types import ReplyKeyboardMarkup, KeyboardButton
+from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 
 # 🔑 SETTINGS
 import os
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_ID = 6411315434  # Apna Telegram ID daalo
+ADMIN_ID = 6411315434  # Apna Telegram ID
 
 bot = telebot.TeleBot(BOT_TOKEN)
 users = set()
@@ -15,7 +15,7 @@ def main_menu():
     markup.row("📘 Trading Basics", "📊 Market Concepts")
     markup.row("🧠 Risk Management", "📈 Chart Education")
     markup.row("❓ FAQ", "📩 Contact Support")
-    markup.row("🔼 Open Menu")  # Menu reopen button
+    markup.row("🔼 Open Menu")
     return markup
 
 # 🚀 START + ADMIN NOTIFY + AUTO PIN (FIRST TIME ONLY)
@@ -162,7 +162,7 @@ Q: Who is this bot for?
 A: Beginners who want to learn trading basics."""
     bot.send_message(message.chat.id, text, reply_markup=main_menu())
 
-# 📩 Contact Support
+# 📩 Contact Support (WITH INLINE BUTTON + USERNAME + CHANNEL REDIRECT)
 @bot.message_handler(func=lambda message: message.text == "📩 Contact Support")
 def support(message):
     text = """📩 Contact Support
@@ -175,7 +175,28 @@ We do not provide personal trading advice.
 
 For educational purposes only - no guaranteed results.☝🏻
 @jjtrader_00"""
-    bot.send_message(message.chat.id, text, reply_markup=main_menu())
 
-print("Bot Running with Auto Pin Disclaimer + Admin Notify + Menu System")
+    # 🔗 Inline Button: Learn More -> Channel
+    inline_markup = InlineKeyboardMarkup()
+    learn_btn = InlineKeyboardButton(
+        text="📚 LEARN MORE",
+        url="https://t.me/+zOZC00MmUa40YmQ1"
+    )
+    inline_markup.add(learn_btn)
+
+    # Send support message with inline button (under the message)
+    bot.send_message(
+        message.chat.id,
+        text,
+        reply_markup=inline_markup
+    )
+
+    # Show main menu again
+    bot.send_message(
+        message.chat.id,
+        "📚 Back to Main Menu:",
+        reply_markup=main_menu()
+    )
+
+print("Bot Running with Auto Pin Disclaimer + Admin Notify + Inline Channel Button + Menu System")
 bot.infinity_polling()
