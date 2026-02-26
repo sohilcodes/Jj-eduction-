@@ -172,38 +172,26 @@ Q: Who is this bot for?
 A: Beginners who want to learn trading basics."""
     bot.send_message(message.chat.id, text, reply_markup=main_menu())
 
-# 📩 Contact Support (WITH INLINE BUTTON + USERNAME + CHANNEL REDIRECT)
-@bot.message_handler(func=lambda message: message.text == "📩 Contact Support")
-def support(message):
-    text = """📩 Contact Support
+# 📩 Learning Support (NO INLINE BUTTON)
+@bot.message_handler(func=lambda message: message.text == "📩 Learning Support")
+def learning_support(message):
+    text = """📩 Learning Support
 
-For general questions related to the educational content,
-please use this bot menu or review the FAQ section.
+If you would like clarification regarding the educational material
+shared inside this bot, you may reach out for further discussion.
+
+Support contact:
+@jjtrader_00
 
 Please note:
-We do not provide personal trading advice.
-
-For educational purposes only - no guaranteed results.☝🏻
-@jjtrader_00"""
-
-    inline_markup = InlineKeyboardMarkup()
-    learn_btn = InlineKeyboardButton(
-        text="📚 LEARN MORE",
-        url="https://t.me/+zOZC00MmUa40YmQ1"
-    )
-    inline_markup.add(learn_btn)
+Support is limited to educational clarification only.
+No personal trading advice is provided."""
 
     bot.send_message(
         message.chat.id,
         text,
-        reply_markup=inline_markup
-    )
-
-    bot.send_message(
-        message.chat.id,
-        "📚 Back to Main Menu:",
         reply_markup=main_menu()
-    )
+    ))
 
 print("Bot Running with Auto Pin Disclaimer + Admin Notify + Inline Channel Button + Menu System")
 
