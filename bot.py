@@ -2,7 +2,7 @@ from flask import Flask
 import threading
 import os
 import telebot
-from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 
 # 🔑 SETTINGS
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -172,10 +172,10 @@ Q: Who is this bot for?
 A: Beginners who want to learn trading basics."""
     bot.send_message(message.chat.id, text, reply_markup=main_menu())
 
-# 📩 Learning Support (NO INLINE BUTTON)
-@bot.message_handler(func=lambda message: message.text == "📩 Learning Support")
-def learning_support(message):
-    text = """📩 Learning Support
+# 📩 Contact Support (NO INLINE BUTTON - CLEAN)
+@bot.message_handler(func=lambda message: message.text == "📩 Contact Support")
+def contact_support(message):
+    text = """📩 Contact Support
 
 If you would like clarification regarding the educational material
 shared inside this bot, you may reach out for further discussion.
@@ -186,21 +186,19 @@ Support contact:
 Please note:
 Support is limited to educational clarification only.
 No personal trading advice is provided."""
-
     bot.send_message(
         message.chat.id,
         text,
         reply_markup=main_menu()
-    ))
+    )
 
-print("Bot Running with Auto Pin Disclaimer + Admin Notify + Inline Channel Button + Menu System")
+print("Bot Running with Auto Pin Disclaimer + Admin Notify + Clean Menu System")
 
 def run_bot():
-    print("Bot Running with Auto Pin Disclaimer + Admin Notify + Inline Channel Button + Menu System")
     bot.infinity_polling()
 
-# Run bot in separate thread (for Web Service)
-threading.Thread(target=run_bot).start()
+# Run bot in separate thread (for Web Service / Render)
+threading.Thread(target=run_bot, daemon=True).start()
 
 # Bind port for Render Web Service (IMPORTANT)
 port = int(os.environ.get("PORT", 10000))
