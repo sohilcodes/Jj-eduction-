@@ -67,7 +67,7 @@ By continuing, you confirm that you understand and accept this."""
     # 🧠 Save user permanently
     if is_new_user:
         users.add(user_id)
-        save_users()  # ← Persistent storage (no data loss on restart)
+        save_users()
 
         total_users = len(users)
 
@@ -84,14 +84,14 @@ By continuing, you confirm that you understand and accept this."""
         except Exception as e:
             print(f"Admin notify error: {e}")
 
-    # ✅ Send disclaimer ONLY ONCE (fixed double message bug)
+    # Send disclaimer ONLY once
     sent_msg = bot.send_message(
         message.chat.id,
         disclaimer,
         reply_markup=main_menu()
     )
 
-    # 📌 Pin ONLY first time (no double pin now)
+    # Pin only first time (no double pin)
     if is_new_user:
         try:
             bot.pin_chat_message(
@@ -136,24 +136,7 @@ def handle_broadcast(message):
 
     for user_id in list(users):
         try:
-            if message.content_type == 'text':
-                bot.send_message(user_id, message.text)
-
-            elif message.content_type == 'photo':
-                bot.send_photo(user_id, message.photo[-1].file_id, caption=message.caption)
-
-            elif message.content_type == 'video':
-                bot.send_video(user_id, message.video.file_id, caption=message.caption)
-
-            elif message.content_type == 'document':
-                bot.send_document(user_id, message.document.file_id, caption=message.caption)
-
-            elif message.content_type == 'audio':
-                bot.send_audio(user_id, message.audio.file_id, caption=message.caption)
-
-            elif message.content_type == 'voice':
-                bot.send_voice(user_id, message.voice.file_id, caption=message.caption)
-
+            bot.copy_message(user_id, message.chat.id, message.message_id)
             success += 1
         except:
             failed += 1
@@ -215,15 +198,7 @@ Understanding market structure helps traders analyze price behavior."""
 def risk_management(message):
     text = """🧠 Risk Management
 
-Risk management helps protect trading capital.
-
-Basic principles:
-• Never risk money you cannot afford to lose
-• No strategy works 100% of the time
-• Emotional control is important
-• Discipline matters more than profit
-
-Professional traders focus on risk first, profit second."""
+Risk management helps protect trading capital."""
     bot.send_message(message.chat.id, text, reply_markup=main_menu())
 
 # 📈 Chart Education
@@ -231,15 +206,7 @@ Professional traders focus on risk first, profit second."""
 def chart_education(message):
     text = """📈 Chart Education
 
-Charts help visualize price movement.
-
-Common tools:
-• Candlestick patterns
-• Support & resistance
-• Indicators (RSI, Moving Average)
-
-Indicators and patterns do not predict the market.
-They are tools to help understand price behavior."""
+Charts help visualize price movement and market structure."""
     bot.send_message(message.chat.id, text, reply_markup=main_menu())
 
 # ❓ FAQ
@@ -247,53 +214,43 @@ They are tools to help understand price behavior."""
 def faq(message):
     text = """❓ Frequently Asked Questions
 
-Q: Do you provide trading signals?
-A: No. This bot is for educational purposes only.
-
-Q: Can trading guarantee profit?
-A: No. Trading always involves risk.
-
-Q: Is this financial advice?
-A: No. All content is educational.
-
-Q: Who is this bot for?
-A: Beginners who want to learn trading basics."""
+This bot provides educational content only.
+No signals. No guarantees. No financial advice."""
     bot.send_message(message.chat.id, text, reply_markup=main_menu())
 
-# 📩 Contact Support (INLINE BUTTON)
+# 📩 Contact Support
 @bot.message_handler(func=lambda message: message.text == "📩 Contact Support")
 def support(message):
     text = """📩 Contact Support
 
-For general questions related to the educational content,
-please use this bot menu or review the FAQ section.
-
-Please note:
-We do not provide personal trading advice.
-
-For educational purposes only - no guaranteed results.☝🏻
+For educational queries only:
 @jjtrader_00"""
-
     inline_markup = InlineKeyboardMarkup()
-    learn_btn = InlineKeyboardButton(
-        text="JOIN CHANNEL",
-        url="https://t.me/+gFckqJ9T134zMTU1"
+    inline_markup.add(
+        InlineKeyboardButton(
+            text="📚 LEARN MORE",
+            url="https://t.me/+zOZC00MmUa40YmQ1"
+        )
     )
-    inline_markup.add(learn_btn)
-
     bot.send_message(message.chat.id, text, reply_markup=inline_markup)
     bot.send_message(message.chat.id, "📚 Back to Main Menu:", reply_markup=main_menu())
 
-print("Bot Running with Persistent Users + Single Pin + Broadcast + Dummy Polling")
+print("Bot Running with Persistent Users + 409 Fix + Stable Polling")
 
-# 🤖 Safe Anti-Crash Dummy Polling Loop
+# 🤖 409 CONFLICT FIX + SAFE POLLING (VERY IMPORTANT)
 def run_bot():
     while True:
         try:
-            print("Bot polling started...")
-            bot.infinity_polling(timeout=60, long_polling_timeout=60)
+            bot.remove_webhook()  # 🔥 prevents 409 conflict
+            time.sleep(1)
+            print("Bot polling started safely...")
+            bot.infinity_polling(
+                timeout=60,
+                long_polling_timeout=60,
+                skip_pending=True
+            )
         except Exception as e:
-            print(f"Bot crashed: {e}")
+            print(f"Bot crashed or conflict: {e}")
             time.sleep(5)
 
 # Run bot in background thread (Render safe)
