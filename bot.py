@@ -1,23 +1,24 @@
+import telebot
+from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from flask import Flask
 import threading
 import os
-import telebot
-from telebot.types import ReplyKeyboardMarkup, KeyboardButton
+import time
 
-# 🔑 SETTINGS
+# 🔑 SETTINGS (ENV TOKEN)
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = 6411315434  # Apna Telegram ID
 
 bot = telebot.TeleBot(BOT_TOKEN)
+users = set()
+broadcast_mode = set()
 
-# 🌐 Dummy Web Server for Render + UptimeRobot
+# 🌐 Dummy Web Server (Render + UptimeRobot)
 app = Flask(__name__)
 
 @app.route('/')
 def home():
     return "Bot is running successfully!"
-
-users = set()
 
 # 🎛 Main Menu (2 Buttons per Row)
 def main_menu():
@@ -34,6 +35,8 @@ def start(message):
     user_id = message.from_user.id
     first_name = message.from_user.first_name
     username = message.from_user.username
+
+    users.add(user_id)  # Save user for broadcast
 
     disclaimer = """⚠️ Disclaimer
 
@@ -57,29 +60,89 @@ By continuing, you confirm that you understand and accept this."""
         except:
             pass
 
-        # Send disclaimer
-        sent_msg = bot.send_message(
-            message.chat.id,
-            disclaimer,
-            reply_markup=main_menu()
-        )
+    # Send disclaimer
+    sent_msg = bot.send_message(
+        message.chat.id,
+        disclaimer,
+        reply_markup=main_menu()
+    )
 
-        # 🔒 Auto pin only first time
-        try:
-            bot.pin_chat_message(
-                chat_id=message.chat.id,
-                message_id=sent_msg.message_id,
-                disable_notification=True
-            )
-        except:
-            pass
-    else:
-        # Old users - no pin again
-        bot.send_message(
-            message.chat.id,
-            disclaimer,
-            reply_markup=main_menu()
+    # 🔒 Auto pin (ignore errors in private chat)
+    try:
+        bot.pin_chat_message(
+            chat_id=message.chat.id,
+            message_id=sent_msg.message_id,
+            disable_notification=True
         )
+    except:
+        pass
+
+# 📢 ADMIN BROADCAST COMMAND
+@bot.message_handler(commands=['broadcast'])
+def broadcast_command(message):
+    if message.from_user.id != ADMIN_ID:
+        bot.reply_to(message, "❌ You are not authorized to use this command.")
+        return
+    
+    broadcast_mode.add(message.from_user.id)
+    bot.send_message(
+        message.chat.id,
+        "📢 Send the message to broadcast to all users.\n\nSend /cancel to stop."
+    )
+
+# ❌ Cancel Broadcast
+@bot.message_handler(commands=['cancel'])
+def cancel_broadcast(message):
+    if message.from_user.id in broadcast_mode:
+        broadcast_mode.remove(message.from_user.id)
+        bot.send_message(message.chat.id, "❌ Broadcast cancelled.")
+
+# 📡 HANDLE BROADCAST (TEXT + MEDIA)
+@bot.message_handler(func=lambda message: message.from_user.id in broadcast_mode, content_types=['text', 'photo', 'video', 'document', 'audio', 'voice'])
+def handle_broadcast(message):
+    if message.from_user.id != ADMIN_ID:
+        return
+
+    total = len(users)
+    success = 0
+    failed = 0
+
+    bot.send_message(message.chat.id, f"📢 Broadcasting to {total} users...")
+
+    for user_id in users:
+        try:
+            if message.content_type == 'text':
+                bot.send_message(user_id, message.text)
+
+            elif message.content_type == 'photo':
+                bot.send_photo(user_id, message.photo[-1].file_id, caption=message.caption)
+
+            elif message.content_type == 'video':
+                bot.send_video(user_id, message.video.file_id, caption=message.caption)
+
+            elif message.content_type == 'document':
+                bot.send_document(user_id, message.document.file_id, caption=message.caption)
+
+            elif message.content_type == 'audio':
+                bot.send_audio(user_id, message.audio.file_id, caption=message.caption)
+
+            elif message.content_type == 'voice':
+                bot.send_voice(user_id, message.voice.file_id, caption=message.caption)
+
+            success += 1
+        except:
+            failed += 1
+
+    broadcast_mode.remove(message.from_user.id)
+
+    bot.send_message(
+        message.chat.id,
+        f"""✅ Broadcast Completed!
+
+👥 Total Users: {total}
+📤 Sent: {success}
+❌ Failed: {failed}"""
+    )
 
 # 🔼 Reopen Menu Button
 @bot.message_handler(func=lambda message: message.text == "🔼 Open Menu")
@@ -172,34 +235,45 @@ Q: Who is this bot for?
 A: Beginners who want to learn trading basics."""
     bot.send_message(message.chat.id, text, reply_markup=main_menu())
 
-# 📩 Contact Support (NO INLINE BUTTON - CLEAN)
+# 📩 Contact Support (INLINE BUTTON)
 @bot.message_handler(func=lambda message: message.text == "📩 Contact Support")
-def contact_support(message):
+def support(message):
     text = """📩 Contact Support
 
-If you would like clarification regarding the educational material
-shared inside this bot, you may reach out for further discussion.
-
-Support contact:
-@jjtrader_00
+For general questions related to the educational content,
+please use this bot menu or review the FAQ section.
 
 Please note:
-Support is limited to educational clarification only.
-No personal trading advice is provided."""
-    bot.send_message(
-        message.chat.id,
-        text,
-        reply_markup=main_menu()
+We do not provide personal trading advice.
+
+For educational purposes only - no guaranteed results.☝🏻
+@jjtrader_00"""
+
+    inline_markup = InlineKeyboardMarkup()
+    learn_btn = InlineKeyboardButton(
+        text="📚 LEARN MORE",
+        url="https://t.me/+zOZC00MmUa40YmQ1"
     )
+    inline_markup.add(learn_btn)
 
-print("Bot Running with Auto Pin Disclaimer + Admin Notify + Clean Menu System")
+    bot.send_message(message.chat.id, text, reply_markup=inline_markup)
+    bot.send_message(message.chat.id, "📚 Back to Main Menu:", reply_markup=main_menu())
 
+print("Bot Running with Dummy Polling + Broadcast + Env Token")
+
+# 🤖 Safe Anti-Crash Dummy Polling Loop
 def run_bot():
-    bot.infinity_polling()
+    while True:
+        try:
+            print("Bot polling started...")
+            bot.infinity_polling(timeout=60, long_polling_timeout=60)
+        except Exception as e:
+            print(f"Bot crashed: {e}")
+            time.sleep(5)
 
-# Run bot in separate thread (for Web Service / Render)
+# Run bot in background thread (Render safe)
 threading.Thread(target=run_bot, daemon=True).start()
 
-# Bind port for Render Web Service (IMPORTANT)
+# Bind PORT for Render (MANDATORY)
 port = int(os.environ.get("PORT", 10000))
 app.run(host="0.0.0.0", port=port)
