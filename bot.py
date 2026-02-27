@@ -47,7 +47,7 @@ def main_menu():
     markup.row("🔼 Open Menu")
     return markup
 
-# 🚀 START + ADMIN NOTIFY + SINGLE PIN + PERMANENT SAVE
+# 🚀 START + ADMIN NOTIFY + SINGLE PIN + INLINE BUTTON + PERMANENT SAVE
 @bot.message_handler(commands=['start'])
 def start(message):
     user_id = message.from_user.id
@@ -84,14 +84,23 @@ By continuing, you confirm that you understand and accept this."""
         except Exception as e:
             print(f"Admin notify error: {e}")
 
-    # Send disclaimer ONLY once
+    # 🔘 Inline Button under display
+    inline_markup = InlineKeyboardMarkup()
+    inline_markup.add(
+        InlineKeyboardButton(
+            text="JOIN CHANNEL",
+            url="https://t.me/+gFckqJ9T134zMTU1"
+        )
+    )
+
+    # 📢 Display message with inline button
     sent_msg = bot.send_message(
         message.chat.id,
         disclaimer,
-        reply_markup=main_menu()
+        reply_markup=inline_markup
     )
 
-    # Pin only first time (no double pin)
+    # 📌 Pin only first time (no double pin)
     if is_new_user:
         try:
             bot.pin_chat_message(
@@ -101,6 +110,13 @@ By continuing, you confirm that you understand and accept this."""
             )
         except:
             pass
+
+    # 📚 Show menu separately (best practice)
+    bot.send_message(
+        message.chat.id,
+        "📚 Please choose a topic from the menu below:",
+        reply_markup=main_menu()
+    )
 
 # 📢 ADMIN BROADCAST COMMAND
 @bot.message_handler(commands=['broadcast'])
@@ -122,7 +138,7 @@ def cancel_broadcast(message):
         broadcast_mode.remove(message.from_user.id)
         bot.send_message(message.chat.id, "❌ Broadcast cancelled.")
 
-# 📡 HANDLE BROADCAST (TEXT + MEDIA)
+# 📡 HANDLE BROADCAST (FAST COPY METHOD)
 @bot.message_handler(func=lambda message: message.from_user.id in broadcast_mode, content_types=['text', 'photo', 'video', 'document', 'audio', 'voice'])
 def handle_broadcast(message):
     if message.from_user.id != ADMIN_ID:
@@ -218,7 +234,7 @@ This bot provides educational content only.
 No signals. No guarantees. No financial advice."""
     bot.send_message(message.chat.id, text, reply_markup=main_menu())
 
-# 📩 Contact Support
+# 📩 Contact Support (INLINE BUTTON)
 @bot.message_handler(func=lambda message: message.text == "📩 Contact Support")
 def support(message):
     text = """📩 Contact Support
@@ -241,25 +257,20 @@ For educational purposes only - no guaranteed results.☝🏻
     bot.send_message(message.chat.id, text, reply_markup=inline_markup)
     bot.send_message(message.chat.id, "📚 Back to Main Menu:", reply_markup=main_menu())
 
-print("Bot Running with Persistent Users + 409 Fix + Stable Polling")
+print("Bot Running with Persistent Users + Inline Button + Broadcast + 409 Fix")
 
-# 🤖 409 CONFLICT FIX + SAFE POLLING (VERY IMPORTANT)
+# 🤖 409 CONFLICT FIX + SAFE POLLING (Render Stable)
 def run_bot():
     while True:
         try:
-            bot.remove_webhook()  # 🔥 prevents 409 conflict
+            bot.remove_webhook()
             time.sleep(1)
             print("Bot polling started safely...")
-            bot.infinity_polling(
-                timeout=60,
-                long_polling_timeout=60,
-                skip_pending=True
-            )
+            bot.infinity_polling(timeout=60, long_polling_timeout=60, skip_pending=True)
         except Exception as e:
             print(f"Bot crashed or conflict: {e}")
             time.sleep(5)
 
-# Run bot in background thread (Render safe)
 threading.Thread(target=run_bot, daemon=True).start()
 
 # Bind PORT for Render (MANDATORY)
