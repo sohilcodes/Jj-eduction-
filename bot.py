@@ -4,13 +4,31 @@ from flask import Flask
 import threading
 import os
 import time
+import json
 
 # 🔑 SETTINGS (ENV TOKEN)
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = 6411315434  # Apna Telegram ID
 
 bot = telebot.TeleBot(BOT_TOKEN)
-users = set()
+
+# 📁 Persistent Database File
+DATA_FILE = "users.json"
+
+# Load users from file (restart safe)
+def load_users():
+    try:
+        with open(DATA_FILE, "r") as f:
+            return set(json.load(f))
+    except:
+        return set()
+
+# Save users to file (permanent)
+def save_users():
+    with open(DATA_FILE, "w") as f:
+        json.dump(list(users), f)
+
+users = load_users()
 broadcast_mode = set()
 
 # 🌐 Dummy Web Server (Render + UptimeRobot)
@@ -29,7 +47,7 @@ def main_menu():
     markup.row("🔼 Open Menu")
     return markup
 
-# 🚀 START + ADMIN NOTIFY + AUTO PIN (FIRST TIME ONLY)
+# 🚀 START + ADMIN NOTIFY + SINGLE PIN + PERMANENT SAVE
 @bot.message_handler(commands=['start'])
 def start(message):
     user_id = message.from_user.id
@@ -44,57 +62,45 @@ We do not provide financial advice, signals, or guaranteed results.
 
 By continuing, you confirm that you understand and accept this."""
 
-    # ✅ CHECK FIRST (before adding user)
     is_new_user = user_id not in users
 
+    # 🧠 Save user permanently
     if is_new_user:
-        users.add(user_id)  # Save user AFTER check
+        users.add(user_id)
+        save_users()  # ← Persistent storage (no data loss on restart)
+
+        total_users = len(users)
 
         user_info = f"""🚀 New User Started the Bot!
 
 👤 Name: {first_name}
 🆔 User ID: {user_id}
-🔗 Username: @{username if username else 'No Username'}"""
+🔗 Username: @{username if username else 'No Username'}
+
+📊 Total Bot Users: {total_users}"""
 
         try:
             bot.send_message(ADMIN_ID, user_info)
         except Exception as e:
             print(f"Admin notify error: {e}")
-    else:
-        users.add(user_id)  # still ensure saved for broadcast
 
-    # Send disclaimer + menu
+    # ✅ Send disclaimer ONLY ONCE (fixed double message bug)
     sent_msg = bot.send_message(
         message.chat.id,
         disclaimer,
         reply_markup=main_menu()
     )
 
-    # Auto pin (may fail in private chat, that's normal)
-    try:
-        bot.pin_chat_message(
-            chat_id=message.chat.id,
-            message_id=sent_msg.message_id,
-            disable_notification=True
-        )
-    except:
-        pass
-    # Send disclaimer
-    sent_msg = bot.send_message(
-        message.chat.id,
-        disclaimer,
-        reply_markup=main_menu()
-    )
-
-    # 🔒 Auto pin (ignore errors in private chat)
-    try:
-        bot.pin_chat_message(
-            chat_id=message.chat.id,
-            message_id=sent_msg.message_id,
-            disable_notification=True
-        )
-    except:
-        pass
+    # 📌 Pin ONLY first time (no double pin now)
+    if is_new_user:
+        try:
+            bot.pin_chat_message(
+                chat_id=message.chat.id,
+                message_id=sent_msg.message_id,
+                disable_notification=True
+            )
+        except:
+            pass
 
 # 📢 ADMIN BROADCAST COMMAND
 @bot.message_handler(commands=['broadcast'])
@@ -106,7 +112,7 @@ def broadcast_command(message):
     broadcast_mode.add(message.from_user.id)
     bot.send_message(
         message.chat.id,
-        "📢 Send the message to broadcast to all users.\n\nSend /cancel to stop."
+        f"📢 Send the message to broadcast.\n\n👥 Total Users: {len(users)}\n\nSend /cancel to stop."
     )
 
 # ❌ Cancel Broadcast
@@ -128,7 +134,7 @@ def handle_broadcast(message):
 
     bot.send_message(message.chat.id, f"📢 Broadcasting to {total} users...")
 
-    for user_id in users:
+    for user_id in list(users):
         try:
             if message.content_type == 'text':
                 bot.send_message(user_id, message.text)
@@ -270,15 +276,15 @@ For educational purposes only - no guaranteed results.☝🏻
 
     inline_markup = InlineKeyboardMarkup()
     learn_btn = InlineKeyboardButton(
-        text="📚 LEARN MORE",
-        url="https://t.me/+zOZC00MmUa40YmQ1"
+        text="JOIN CHANNEL",
+        url="https://t.me/+gFckqJ9T134zMTU1"
     )
     inline_markup.add(learn_btn)
 
     bot.send_message(message.chat.id, text, reply_markup=inline_markup)
     bot.send_message(message.chat.id, "📚 Back to Main Menu:", reply_markup=main_menu())
 
-print("Bot Running with Dummy Polling + Broadcast + Env Token")
+print("Bot Running with Persistent Users + Single Pin + Broadcast + Dummy Polling")
 
 # 🤖 Safe Anti-Crash Dummy Polling Loop
 def run_bot():
