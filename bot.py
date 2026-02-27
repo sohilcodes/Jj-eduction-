@@ -36,8 +36,6 @@ def start(message):
     first_name = message.from_user.first_name
     username = message.from_user.username
 
-    users.add(user_id)  # Save user for broadcast
-
     disclaimer = """⚠️ Disclaimer
 
 This bot is created for educational purposes only.
@@ -46,20 +44,41 @@ We do not provide financial advice, signals, or guaranteed results.
 
 By continuing, you confirm that you understand and accept this."""
 
-    # New user notify + first time pin logic
-    if user_id not in users:
-        users.add(user_id)
+    # ✅ CHECK FIRST (before adding user)
+    is_new_user = user_id not in users
+
+    if is_new_user:
+        users.add(user_id)  # Save user AFTER check
 
         user_info = f"""🚀 New User Started the Bot!
 
 👤 Name: {first_name}
 🆔 User ID: {user_id}
 🔗 Username: @{username if username else 'No Username'}"""
+
         try:
             bot.send_message(ADMIN_ID, user_info)
-        except:
-            pass
+        except Exception as e:
+            print(f"Admin notify error: {e}")
+    else:
+        users.add(user_id)  # still ensure saved for broadcast
 
+    # Send disclaimer + menu
+    sent_msg = bot.send_message(
+        message.chat.id,
+        disclaimer,
+        reply_markup=main_menu()
+    )
+
+    # Auto pin (may fail in private chat, that's normal)
+    try:
+        bot.pin_chat_message(
+            chat_id=message.chat.id,
+            message_id=sent_msg.message_id,
+            disable_notification=True
+        )
+    except:
+        pass
     # Send disclaimer
     sent_msg = bot.send_message(
         message.chat.id,
