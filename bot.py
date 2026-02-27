@@ -223,7 +223,13 @@ No signals. No guarantees. No financial advice."""
 def support(message):
     text = """📩 Contact Support
 
-For educational queries only:
+For general questions related to the educational content,
+please use this bot menu or review the FAQ section.
+
+Please note:
+We do not provide personal trading advice.
+
+For educational purposes only - no guaranteed results.☝🏻
 @jjtrader_00"""
     inline_markup = InlineKeyboardMarkup()
     inline_markup.add(
