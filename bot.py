@@ -234,8 +234,8 @@ For educational purposes only - no guaranteed results.☝🏻
     inline_markup = InlineKeyboardMarkup()
     inline_markup.add(
         InlineKeyboardButton(
-            text="📚 LEARN MORE",
-            url="https://t.me/+zOZC00MmUa40YmQ1"
+            text="JOIN CHANNEL",
+            url="https://t.me/+gFckqJ9T134zMTU1"
         )
     )
     bot.send_message(message.chat.id, text, reply_markup=inline_markup)
